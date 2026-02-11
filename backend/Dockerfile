@@ -31,4 +31,5 @@ COPY --from=builder /app/tsconfig.json ./
 
 EXPOSE 9000
 
-CMD ["npm", "run", "start"]
+# Run migrations on startup, then start
+CMD ["sh", "-c", "npx medusa db:migrate && npm run start"]

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- Infrastructure ---
   postgres:
@@ -12,6 +10,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medusa} -d ${DB_NAME:-healthea}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - healthea
 
@@ -19,6 +22,11 @@ services:
     image: redis:7-alpine
     container_name: healthea-redis
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - healthea
 
@@ -47,16 +55,20 @@ services:
       MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY}
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECRET: ${COOKIE_SECRET}
-      STRIPE_API_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
       STORE_CORS: https://healthea.ca
-      ADMIN_CORS: https://admin.healthea.ca
+      ADMIN_CORS: https://healthea.ca
+      AUTH_CORS: https://healthea.ca
       NODE_ENV: production
     ports:
       - '9000:9000'
     depends_on:
-      - postgres
-      - redis
-      - meilisearch
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
     restart: unless-stopped
     networks:
       - healthea
@@ -68,11 +80,13 @@ services:
       args:
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
         NEXT_PUBLIC_SITE_URL: https://healthea.ca
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     container_name: healthea-storefront
     environment:
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
       NEXT_PUBLIC_SITE_URL: https://healthea.ca
+      NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
       NODE_ENV: production
     ports:
       - '3000:3000'
