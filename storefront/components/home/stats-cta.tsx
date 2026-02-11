@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const stats = [
-  { value: 35, suffix: "+", label: "Tea Variants" },
-  { value: 200, suffix: "+", label: "Satisfied Clients" },
-  { value: 20, suffix: "+", label: "Branch Stores" },
+  { value: 35, suffix: "+", label: "Tea Varieties" },
+  { value: 8, suffix: "", label: "Tea Origins" },
+  { value: 100, suffix: "%", label: "Natural Ingredients" },
 ];
 
 function AnimatedCounter({
@@ -71,7 +71,7 @@ export default function StatsCta() {
         {/* Right: Content + Stats */}
         <div className="flex flex-col justify-center bg-cream-50 px-8 py-16 lg:px-16 lg:py-24">
           <p className="font-display text-sm italic text-gold-500">
-            Workspace &amp; Meal
+            Wellness &amp; Ritual
           </p>
           <h2 className="mt-4 font-display text-3xl font-bold leading-tight text-primary-700 lg:text-4xl">
             Take a break, drink some tea

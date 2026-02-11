@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { Container } from "@/components/ui";
 import { ProductFilters, ProductSort } from "@/components/product";
-import { products } from "@/lib/data/products";
-import { categories } from "@/lib/data/categories";
+import { getProducts } from "@/lib/data/products";
+import { getCategories } from "@/lib/data/categories";
 import ShopProductGrid from "./shop-product-grid";
 
 export const metadata = {
@@ -11,7 +11,12 @@ export const metadata = {
     "Browse our complete collection of premium healthy teas from around the world. Green, black, white, organic, herbal, oolong, matcha, and chai.",
 };
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
+
   return (
     <>
       {/* Page Header */}
@@ -31,7 +36,7 @@ export default function ShopPage() {
           {/* Sidebar Filters */}
           <div className="mb-8 lg:mb-0">
             <Suspense>
-              <ProductFilters />
+              <ProductFilters categories={categories} />
             </Suspense>
           </div>
 
@@ -43,7 +48,7 @@ export default function ShopPage() {
               </Suspense>
             </div>
             <Suspense>
-              <ShopProductGrid />
+              <ShopProductGrid products={products} categories={categories} />
             </Suspense>
           </div>
         </div>

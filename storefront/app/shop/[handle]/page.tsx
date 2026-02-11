@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { products, getProductByHandle, formatPrice } from "@/lib/data/products";
+import { getProducts, getProductByHandle, getProductsByCategory, formatPrice } from "@/lib/data/products";
 import { Container } from "@/components/ui";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo";
 import ProductDetail from "./product-detail";
@@ -9,12 +9,13 @@ interface Props {
 }
 
 export async function generateStaticParams() {
+  const products = await getProducts();
   return products.map((p) => ({ handle: p.handle }));
 }
 
 export async function generateMetadata({ params }: Props) {
   const { handle } = await params;
-  const product = getProductByHandle(handle);
+  const product = await getProductByHandle(handle);
   if (!product) return { title: "Product Not Found" };
   return {
     title: product.title,
@@ -30,12 +31,15 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProductPage({ params }: Props) {
   const { handle } = await params;
-  const product = getProductByHandle(handle);
+  const product = await getProductByHandle(handle);
   if (!product) notFound();
 
-  // Find related products from same collection (excluding current)
-  const related = products
-    .filter((p) => p.collection_id === product.collection_id && p.id !== product.id)
+  // Find related products from same category (excluding current)
+  const allCategoryProducts = product.collection_id
+    ? await getProductsByCategory(product.collection_id)
+    : [];
+  const related = allCategoryProducts
+    .filter((p) => p.id !== product.id)
     .slice(0, 4);
 
   return (

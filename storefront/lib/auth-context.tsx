@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { medusaClientFetch } from "@/lib/medusa";
 
 export interface Customer {
   id: string;
@@ -21,62 +22,146 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const AUTH_STORAGE_KEY = "healthea-auth";
+const TOKEN_KEY = "healthea-auth-token";
+
+async function fetchCustomerProfile(token: string): Promise<Customer | null> {
+  try {
+    const data = await medusaClientFetch<{
+      customer: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone: string | null;
+      };
+    }>("/store/customers/me", { token });
+    const c = data.customer;
+    return {
+      id: c.id,
+      firstName: c.first_name || "",
+      lastName: c.last_name || "",
+      email: c.email,
+      phone: c.phone || "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
+  // Hydrate: check for existing token on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) setCustomer(JSON.parse(stored));
-    } catch { /* empty */ }
-  }, []);
-
-  const persist = useCallback((c: Customer | null) => {
-    setCustomer(c);
-    if (c) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(c));
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    if (storedToken) {
+      setToken(storedToken);
+      fetchCustomerProfile(storedToken).then((c) => {
+        if (c) {
+          setCustomer(c);
+        } else {
+          localStorage.removeItem(TOKEN_KEY);
+          setToken(null);
+        }
+      });
     }
   }, []);
 
-  const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
-    // In production, call Medusa auth endpoint
-    persist({
-      id: "cus_demo",
-      firstName: "Tea",
-      lastName: "Lover",
-      email,
-      phone: "",
-    });
-    return true;
-  }, [persist]);
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    try {
+      // Step 1: Authenticate with Medusa
+      const authData = await medusaClientFetch<{ token: string }>(
+        "/auth/customer/emailpass",
+        { method: "POST", body: { email, password } }
+      );
 
-  const register = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }): Promise<boolean> => {
-    // In production, call Medusa customer registration
-    persist({
-      id: "cus_" + Math.random().toString(36).substring(2, 8),
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-    });
-    return true;
-  }, [persist]);
+      const newToken = authData.token;
+      setToken(newToken);
+      localStorage.setItem(TOKEN_KEY, newToken);
+
+      // Step 2: Fetch customer profile
+      const c = await fetchCustomerProfile(newToken);
+      if (c) {
+        setCustomer(c);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const register = useCallback(async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }): Promise<boolean> => {
+    try {
+      // Step 1: Create auth identity
+      const authData = await medusaClientFetch<{ token: string }>(
+        "/auth/customer/emailpass/register",
+        { method: "POST", body: { email: data.email, password: data.password } }
+      );
+
+      const newToken = authData.token;
+
+      // Step 2: Create customer profile
+      await medusaClientFetch("/store/customers", {
+        method: "POST",
+        token: newToken,
+        body: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+        },
+      });
+
+      setToken(newToken);
+      localStorage.setItem(TOKEN_KEY, newToken);
+
+      // Step 3: Fetch the created customer
+      const c = await fetchCustomerProfile(newToken);
+      if (c) {
+        setCustomer(c);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const logout = useCallback(() => {
-    persist(null);
-  }, [persist]);
-
-  const updateProfile = useCallback((data: Partial<Customer>) => {
-    setCustomer((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, ...data };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+    setCustomer(null);
+    setToken(null);
+    localStorage.removeItem(TOKEN_KEY);
   }, []);
+
+  const updateProfile = useCallback(
+    async (data: Partial<Customer>) => {
+      if (!token || !customer) return;
+
+      // Optimistic update
+      setCustomer((prev) => (prev ? { ...prev, ...data } : prev));
+
+      try {
+        await medusaClientFetch("/store/customers/me", {
+          method: "POST",
+          token,
+          body: {
+            first_name: data.firstName ?? customer.firstName,
+            last_name: data.lastName ?? customer.lastName,
+            phone: data.phone ?? customer.phone,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to update profile:", e);
+      }
+    },
+    [token, customer]
+  );
 
   return (
     <AuthContext.Provider

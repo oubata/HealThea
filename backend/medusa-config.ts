@@ -14,4 +14,16 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
   },
+  modules: [
+    ...(process.env.STRIPE_API_KEY
+      ? [
+          {
+            resolve: "@medusajs/payment-stripe",
+            options: {
+              apiKey: process.env.STRIPE_API_KEY,
+            },
+          },
+        ]
+      : []),
+  ],
 })

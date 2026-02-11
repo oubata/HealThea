@@ -82,7 +82,7 @@ export default function Hero() {
         {/* Right: Content */}
         <div className="flex flex-col items-start justify-center bg-cream-50 px-8 py-16 lg:px-16 lg:py-24">
           <p className="font-display text-sm italic text-gold-500">
-            Enjoy Exotic Tea from India
+            Premium Teas from Around the World
           </p>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-primary-700 lg:text-5xl xl:text-6xl">
             Healthy Beverage For Your Soul &amp; Body

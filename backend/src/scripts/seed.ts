@@ -347,14 +347,54 @@ export default async function seedDemoData({ container }: ExecArgs) {
   ).run({
     input: {
       product_categories: [
-        { name: "Green Tea", is_active: true },
-        { name: "Black Tea", is_active: true },
-        { name: "White Tea", is_active: true },
-        { name: "Organic Tea", is_active: true },
-        { name: "Herbal Tea", is_active: true },
-        { name: "Oolong Tea", is_active: true },
-        { name: "Matcha", is_active: true },
-        { name: "Chai", is_active: true },
+        {
+          name: "Green Tea",
+          description:
+            "Unoxidised teas with fresh, grassy flavours. Rich in catechins and antioxidants, green teas are prized for their delicate taste and health benefits.",
+          is_active: true,
+        },
+        {
+          name: "Black Tea",
+          description:
+            "Fully oxidised teas with bold, robust flavours. From malty Assam to floral Darjeeling, black teas offer depth and complexity in every cup.",
+          is_active: true,
+        },
+        {
+          name: "White Tea",
+          description:
+            "The most delicate tea, minimally processed from young buds and leaves. White teas offer subtle sweetness, floral notes, and the highest antioxidant content.",
+          is_active: true,
+        },
+        {
+          name: "Organic Tea",
+          description:
+            "Certified organic selections grown without synthetic pesticides or fertilisers. Pure teas that are good for you and good for the planet.",
+          is_active: true,
+        },
+        {
+          name: "Herbal Tea",
+          description:
+            "Caffeine-free infusions crafted from flowers, herbs, and fruits. From soothing chamomile to refreshing peppermint, our herbal teas offer flavour and wellness without caffeine.",
+          is_active: true,
+        },
+        {
+          name: "Oolong Tea",
+          description:
+            "Partially oxidised teas that bridge the gap between green and black. Oolong offers complex flavour profiles ranging from floral and creamy to roasted and fruity.",
+          is_active: true,
+        },
+        {
+          name: "Matcha",
+          description:
+            "Stone-ground Japanese green tea powder, whisked into a frothy, vibrant cup. Matcha delivers a concentrated dose of antioxidants, L-theanine, and calm energy.",
+          is_active: true,
+        },
+        {
+          name: "Chai",
+          description:
+            "Aromatic spiced tea blends inspired by Indian chai traditions. Warm cinnamon, cardamom, ginger, and cloves meet bold black tea for a comforting, spicy cup.",
+          is_active: true,
+        },
       ],
     },
   });
@@ -370,11 +410,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Japanese Sencha Green Tea",
           category_ids: [catId("Green Tea")],
           description:
-            "A classic Japanese green tea with a delicate balance of sweetness and astringency. Rich in catechins and vitamin C.",
+            "A classic Japanese green tea from the sun-drenched fields of Shizuoka Prefecture. Deep-steamed for a rich, emerald-green liquor with a delicate balance of vegetal sweetness and mild astringency. Each sip reveals layers of umami, fresh grass, and a clean, lingering finish. Naturally high in catechins and vitamin C, Sencha is Japan's most beloved everyday tea.",
           handle: "japanese-sencha-green-tea",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "Japan",
+            health_benefits: "High in catechins, boosts metabolism, rich in vitamin C",
+            brewing_temp: "70-80°C",
+            steep_time: "1-2 minutes",
+            caffeine_level: "medium",
+          },
           options: [{ title: "Weight", values: ["50g", "100g", "250g"] }],
           variants: [
             {
@@ -402,11 +449,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Chinese Gunpowder Green Tea",
           category_ids: [catId("Green Tea")],
           description:
-            "Tightly rolled pellet-like leaves delivering a bold, slightly smoky flavour. Excellent base for Moroccan mint tea.",
+            "Hand-rolled into tight pellets that unfurl dramatically during steeping, Gunpowder green tea has been a Chinese staple for centuries. Sourced from the misty hills of Zhejiang Province, these leaves deliver a bold, slightly smoky flavour with a pleasantly sharp finish. A classic base for Moroccan mint tea, it also stands beautifully on its own as a robust, full-bodied green tea.",
           handle: "chinese-gunpowder-green-tea",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "China",
+            health_benefits: "Aids digestion, rich in antioxidants, supports heart health",
+            brewing_temp: "75-85°C",
+            steep_time: "2-3 minutes",
+            caffeine_level: "medium",
+          },
           options: [{ title: "Weight", values: ["50g", "100g", "250g"] }],
           variants: [
             {
@@ -434,11 +488,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Darjeeling First Flush Black Tea",
           category_ids: [catId("Black Tea")],
           description:
-            "The 'Champagne of Teas' — harvested in spring from the Himalayan foothills. Light, floral cup with muscatel notes.",
+            "Known as the 'Champagne of Teas,' this first flush Darjeeling is harvested in early spring from the mist-covered estates of the Himalayan foothills. The light, amber liquor reveals an exquisite muscatel character — floral and bright with notes of stone fruit and a clean, crisp finish. Each harvest is limited, making this a prized selection for tea connoisseurs.",
           handle: "darjeeling-first-flush-black-tea",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "India",
+            health_benefits: "Boosts energy, supports cardiovascular health, rich in theaflavins",
+            brewing_temp: "90-95°C",
+            steep_time: "3-4 minutes",
+            caffeine_level: "high",
+          },
           options: [{ title: "Weight", values: ["50g", "100g", "250g"] }],
           variants: [
             {
@@ -466,11 +527,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Earl Grey Supreme",
           category_ids: [catId("Black Tea")],
           description:
-            "Premium Ceylon black tea with natural bergamot oil and cornflower petals. Sophisticated, citrus-forward cup.",
+            "An elevated take on the classic Earl Grey, blending premium Ceylon black tea from the highlands of Sri Lanka with cold-pressed bergamot oil and delicate cornflower petals. The result is a sophisticated, citrus-forward cup with a smooth, malty base and a lingering floral-bergamot finish. Perfect for afternoon tea or as a refined morning ritual.",
           handle: "earl-grey-supreme",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "Sri Lanka",
+            health_benefits: "Improves focus, aids digestion, rich in antioxidants",
+            brewing_temp: "95-100°C",
+            steep_time: "3-5 minutes",
+            caffeine_level: "high",
+          },
           options: [{ title: "Weight", values: ["50g", "100g", "250g"] }],
           variants: [
             {
@@ -498,11 +566,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Silver Needle White Tea",
           category_ids: [catId("White Tea")],
           description:
-            "The most prized white tea — unopened buds with honeyed sweetness and silky texture. A true luxury tea.",
+            "The most prized white tea in the world, Bai Hao Yin Zhen is hand-picked from only the plumpest, most tender buds of the Fujian tea plant. Covered in fine silvery-white down, these buds produce a pale, luminous liquor with honeyed sweetness, notes of melon and peach, and an impossibly silky texture. Minimal processing preserves the highest antioxidant content of any tea type.",
           handle: "silver-needle-white-tea",
           weight: 50,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "China",
+            health_benefits: "Highest antioxidant content, anti-aging, supports skin health",
+            brewing_temp: "70-75°C",
+            steep_time: "3-5 minutes",
+            caffeine_level: "low",
+          },
           options: [{ title: "Weight", values: ["50g", "100g"] }],
           variants: [
             {
@@ -524,11 +599,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Organic Chamomile Bliss",
           category_ids: [catId("Herbal Tea"), catId("Organic Tea")],
           description:
-            "Pure Egyptian chamomile flowers, certified organic. Caffeine-free with gentle apple-like sweetness and calming properties.",
+            "Whole-flower Egyptian chamomile, certified organic and hand-harvested at peak bloom in the Nile Valley. These golden blossoms brew a gentle, honey-coloured infusion with a naturally sweet, apple-like fragrance and deeply calming properties. A perfect caffeine-free evening ritual that has been treasured for millennia as a natural remedy for restful sleep and relaxation.",
           handle: "organic-chamomile-bliss",
           weight: 50,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "Egypt",
+            health_benefits: "Promotes sleep, reduces anxiety, soothes digestion",
+            brewing_temp: "95-100°C",
+            steep_time: "5-7 minutes",
+            caffeine_level: "none",
+          },
           options: [{ title: "Weight", values: ["50g", "100g"] }],
           variants: [
             {
@@ -550,11 +632,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Tieguanyin Iron Goddess Oolong",
           category_ids: [catId("Oolong Tea")],
           description:
-            "Legendary Chinese oolong with complex orchid fragrance and lingering sweet aftertaste.",
+            "Named after the Chinese Goddess of Mercy, this legendary Anxi oolong is one of China's most celebrated teas. Tightly rolled leaves unfurl to release a complex bouquet of orchid, lilac, and toasted grain. The smooth, creamy body gives way to a lingering sweet aftertaste that deepens with each re-infusion — Tieguanyin rewards patience with up to seven steepings of evolving flavour.",
           handle: "tieguanyin-iron-goddess-oolong",
           weight: 50,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "China",
+            health_benefits: "Boosts metabolism, supports bone health, reduces stress",
+            brewing_temp: "85-95°C",
+            steep_time: "3-5 minutes",
+            caffeine_level: "medium",
+          },
           options: [{ title: "Weight", values: ["50g", "100g"] }],
           variants: [
             {
@@ -576,11 +665,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Ceremonial Grade Matcha",
           category_ids: [catId("Matcha")],
           description:
-            "The finest stone-ground matcha from Uji, Kyoto. Vibrant emerald green with smooth umami-rich flavour.",
+            "The finest ceremonial-grade matcha, stone-ground from shade-grown tencha leaves in the historic tea fields of Uji, Kyoto. This vibrant emerald powder produces an impossibly smooth, umami-rich bowl with a natural sweetness and creamy mouthfeel. Containing 137 times more antioxidants than standard green tea, ceremonial matcha is whisked to a frothy perfection for the traditional Japanese tea ceremony or enjoyed as a daily mindfulness ritual.",
           handle: "ceremonial-grade-matcha",
           weight: 30,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "Japan",
+            health_benefits: "137x more antioxidants than green tea, boosts calm focus, detoxifies",
+            brewing_temp: "70-75°C",
+            steep_time: "Whisk 15-20 seconds",
+            caffeine_level: "high",
+          },
           options: [{ title: "Weight", values: ["30g Tin", "100g Tin"] }],
           variants: [
             {
@@ -602,11 +698,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Traditional Masala Chai",
           category_ids: [catId("Chai")],
           description:
-            "Authentic Indian spice blend — Assam black tea with cinnamon, cardamom, ginger, cloves, and black pepper.",
+            "An authentic masala chai blend crafted from robust Assam CTC black tea and whole spices — cinnamon bark, green cardamom, fresh ginger root, cloves, and black peppercorn. Designed to be simmered with milk in the traditional Indian manner, this aromatic blend fills the kitchen with warmth and produces a rich, spicy-sweet cup that energises body and soul. Each batch is hand-blended in small quantities for maximum freshness.",
           handle: "traditional-masala-chai",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "India",
+            health_benefits: "Anti-inflammatory, aids digestion, boosts immunity",
+            brewing_temp: "95-100°C",
+            steep_time: "4-5 minutes (simmer with milk)",
+            caffeine_level: "medium",
+          },
           options: [{ title: "Weight", values: ["100g", "250g"] }],
           variants: [
             {
@@ -628,11 +731,18 @@ export default async function seedDemoData({ container }: ExecArgs) {
           title: "Organic Rooibos Red Bush",
           category_ids: [catId("Organic Tea"), catId("Herbal Tea")],
           description:
-            "Sustainably harvested from South Africa's Cederberg mountains. Naturally caffeine-free with sweet, nutty flavour.",
+            "Sustainably harvested from the ancient Cederberg mountains of South Africa, this certified organic rooibos produces a deep amber-red infusion with a naturally sweet, nutty flavour and hints of vanilla and honey. Completely caffeine-free and exceptionally rich in minerals including calcium, manganese, and zinc, rooibos is a nourishing choice for any time of day — enjoyed by the whole family.",
           handle: "organic-rooibos-red-bush",
           weight: 100,
           status: ProductStatus.PUBLISHED,
           shipping_profile_id: shippingProfile.id,
+          metadata: {
+            origin_country: "South Africa",
+            health_benefits: "Rich in minerals, supports bone health, caffeine-free",
+            brewing_temp: "95-100°C",
+            steep_time: "5-7 minutes",
+            caffeine_level: "none",
+          },
           options: [{ title: "Weight", values: ["100g", "250g"] }],
           variants: [
             {

@@ -1,47 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Container, SectionHeading } from "@/components/ui";
-
-// Placeholder products — will be replaced with Medusa API data
-const placeholderProducts = [
-  {
-    id: "1",
-    title: "Japanese Sencha Green Tea",
-    handle: "japanese-sencha-green-tea",
-    price: 1499,
-    image: "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?w=500&q=80",
-  },
-  {
-    id: "2",
-    title: "Darjeeling Black Tea",
-    handle: "darjeeling-black-tea",
-    price: 1899,
-    image: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=500&q=80",
-  },
-  {
-    id: "3",
-    title: "Silver Needle White Tea",
-    handle: "silver-needle-white-tea",
-    price: 2499,
-    image: "https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=500&q=80",
-  },
-  {
-    id: "4",
-    title: "Organic Chamomile Herbal",
-    handle: "organic-chamomile-herbal",
-    price: 1299,
-    image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&q=80",
-  },
-];
-
-function formatPrice(cents: number): string {
-  return `$${(cents / 100).toFixed(2)} CAD`;
-}
+import { getProducts, formatPrice } from "@/lib/data/products";
 
 function ProductCard({
   product,
 }: {
-  product: (typeof placeholderProducts)[number];
+  product: { title: string; handle: string; price: number; image: string };
 }) {
   return (
     <div className="group">
@@ -63,17 +28,28 @@ function ProductCard({
           {product.title}
         </Link>
         <p className="mt-1 text-sm font-medium text-neutral-500">
-          {formatPrice(product.price)}
+          {formatPrice(product.price)} CAD
         </p>
       </div>
-      <button className="mt-3 w-full rounded bg-sage-700 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700">
-        Add to Cart
-      </button>
+      <Link
+        href={`/shop/${product.handle}`}
+        className="mt-3 block w-full rounded bg-sage-700 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700"
+      >
+        View Product
+      </Link>
     </div>
   );
 }
 
-export default function PopularProducts() {
+export default async function PopularProducts() {
+  const allProducts = await getProducts();
+  const featured = allProducts.slice(0, 4).map((p) => ({
+    title: p.title,
+    handle: p.handle,
+    price: Math.min(...p.variants.map((v) => v.price)),
+    image: p.thumbnail,
+  }));
+
   return (
     <section className="bg-cream-50 py-16 lg:py-24">
       <Container>
@@ -84,8 +60,8 @@ export default function PopularProducts() {
         />
 
         <div className="grid grid-cols-2 gap-6 lg:grid-cols-4 lg:gap-8">
-          {placeholderProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {featured.map((product) => (
+            <ProductCard key={product.handle} product={product} />
           ))}
         </div>
       </Container>

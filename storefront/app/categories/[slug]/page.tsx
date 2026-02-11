@@ -2,20 +2,21 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Container } from "@/components/ui";
 import { ProductGrid } from "@/components/product";
-import { categories, getCategoryBySlug } from "@/lib/data/categories";
-import { getProductsByCollection } from "@/lib/data/products";
+import { getCategories, getCategoryBySlug } from "@/lib/data/categories";
+import { getProductsByCategory } from "@/lib/data/products";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
+  const categories = await getCategories();
   return categories.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Category Not Found" };
   return {
     title: category.name,
@@ -30,10 +31,10 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const categoryProducts = getProductsByCollection(category.id);
+  const categoryProducts = await getProductsByCategory(category.id);
 
   return (
     <>

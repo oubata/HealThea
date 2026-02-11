@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { categories } from "@/lib/data/categories";
+import { type Category } from "@/lib/data/categories";
 
 const priceRanges = [
   { label: "Under $15", value: "0-1500" },
@@ -17,7 +17,7 @@ const caffeineFilters = [
   { label: "High Caffeine", value: "high" },
 ];
 
-export default function ProductFilters() {
+export default function ProductFilters({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 

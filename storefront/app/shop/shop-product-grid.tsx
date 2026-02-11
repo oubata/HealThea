@@ -2,11 +2,17 @@
 
 import { useSearchParams } from "next/navigation";
 import { ProductGrid } from "@/components/product";
-import { products, type Product } from "@/lib/data/products";
-import { categories } from "@/lib/data/categories";
+import { type Product } from "@/lib/data/products";
+import { type Category } from "@/lib/data/categories";
+
+interface Props {
+  products: Product[];
+  categories: Category[];
+}
 
 function filterProducts(
   allProducts: Product[],
+  allCategories: Category[],
   params: URLSearchParams
 ): Product[] {
   let filtered = [...allProducts];
@@ -14,7 +20,7 @@ function filterProducts(
   // Category filter
   const categorySlug = params.get("category");
   if (categorySlug) {
-    const cat = categories.find((c) => c.slug === categorySlug);
+    const cat = allCategories.find((c) => c.slug === categorySlug);
     if (cat) {
       filtered = filtered.filter((p) => p.collection_id === cat.id);
     }
@@ -59,9 +65,9 @@ function filterProducts(
   return filtered;
 }
 
-export default function ShopProductGrid() {
+export default function ShopProductGrid({ products, categories }: Props) {
   const searchParams = useSearchParams();
-  const filtered = filterProducts(products, searchParams);
+  const filtered = filterProducts(products, categories, searchParams);
 
   return <ProductGrid products={filtered} />;
 }

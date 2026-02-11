@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { formatPrice } from "@/lib/data/products";
+import { medusaClientFetch } from "@/lib/medusa";
 import { Container } from "@/components/ui";
+import StripePayment from "@/components/checkout/stripe-payment";
 
 type Step = "shipping" | "method" | "payment" | "review";
 
@@ -17,25 +19,20 @@ const steps: { key: Step; label: string }[] = [
 ];
 
 const SHIPPING_THRESHOLD = 5000;
-const shippingOptions = [
-  {
-    id: "standard",
-    name: "Standard Shipping",
-    description: "5-7 business days",
-    price: 599,
-  },
-  {
-    id: "express",
-    name: "Express Shipping",
-    description: "1-2 business days",
-    price: 1299,
-  },
-];
+
+interface ShippingOption {
+  id: string;
+  name: string;
+  amount: number;
+  description?: string;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clearCart, itemCount } = useCart();
+  const { items, subtotal, clearCart, itemCount, cartId } = useCart();
   const [currentStep, setCurrentStep] = useState<Step>("shipping");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Form state
   const [shippingInfo, setShippingInfo] = useState({
@@ -47,36 +44,185 @@ export default function CheckoutPage() {
     city: "",
     province: "",
     postalCode: "",
+    country: "ca",
   });
-  const [selectedShipping, setSelectedShipping] = useState("standard");
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState("");
+  const [stripeClientSecret, setStripeClientSecret] = useState("");
+  const [paymentReady, setPaymentReady] = useState(false);
 
-  const shippingCost =
-    subtotal >= SHIPPING_THRESHOLD
-      ? 0
-      : shippingOptions.find((o) => o.id === selectedShipping)?.price ?? 599;
+  const shippingCost = shippingOptions.find((o) => o.id === selectedShipping)?.amount ?? 0;
+  const effectiveShipping = subtotal >= SHIPPING_THRESHOLD ? 0 : shippingCost;
   const estimatedTax = Math.round(subtotal * 0.13);
-  const total = subtotal + shippingCost + estimatedTax;
+  const total = subtotal + effectiveShipping + estimatedTax;
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
 
-  function nextStep() {
-    if (stepIndex < steps.length - 1) {
-      setCurrentStep(steps[stepIndex + 1].key);
-    }
-  }
+  // --- Step handlers ---
 
-  function prevStep() {
-    if (stepIndex > 0) {
-      setCurrentStep(steps[stepIndex - 1].key);
+  // Step 1 → 2: Save shipping info to cart, get shipping options
+  const handleShippingSubmit = useCallback(async () => {
+    if (!cartId) {
+      setError("No cart found. Please add items first.");
+      return;
     }
-  }
 
-  function handlePlaceOrder() {
-    // In production, this calls Medusa's cart completion endpoint
-    clearCart();
-    router.push("/checkout/confirmation");
-  }
+    setLoading(true);
+    setError("");
+
+    try {
+      // Update cart with email and shipping address
+      await medusaClientFetch(`/store/carts/${cartId}`, {
+        method: "POST",
+        body: {
+          email: shippingInfo.email,
+          shipping_address: {
+            first_name: shippingInfo.firstName,
+            last_name: shippingInfo.lastName,
+            address_1: shippingInfo.address,
+            city: shippingInfo.city,
+            province: shippingInfo.province,
+            postal_code: shippingInfo.postalCode,
+            country_code: shippingInfo.country,
+            phone: shippingInfo.phone,
+          },
+          billing_address: {
+            first_name: shippingInfo.firstName,
+            last_name: shippingInfo.lastName,
+            address_1: shippingInfo.address,
+            city: shippingInfo.city,
+            province: shippingInfo.province,
+            postal_code: shippingInfo.postalCode,
+            country_code: shippingInfo.country,
+            phone: shippingInfo.phone,
+          },
+        },
+      });
+
+      // Get available shipping options
+      const data = await medusaClientFetch<{
+        shipping_options: Array<{
+          id: string;
+          name: string;
+          amount: number;
+          type: { label: string; description: string };
+        }>;
+      }>(`/store/shipping-options?cart_id=${cartId}`);
+
+      const options = data.shipping_options.map((o) => ({
+        id: o.id,
+        name: o.name,
+        amount: o.amount,
+        description: o.type?.description,
+      }));
+
+      setShippingOptions(options);
+      if (options.length > 0) {
+        setSelectedShipping(options[0].id);
+      }
+
+      setCurrentStep("method");
+    } catch (e) {
+      console.error("Shipping update failed:", e);
+      setError("Failed to update shipping info. Please check your details.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cartId, shippingInfo]);
+
+  // Step 2 → 3: Set shipping method, initialize payment
+  const handleShippingMethodSubmit = useCallback(async () => {
+    if (!cartId || !selectedShipping) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Add shipping method to cart
+      await medusaClientFetch(`/store/carts/${cartId}/shipping-methods`, {
+        method: "POST",
+        body: { option_id: selectedShipping },
+      });
+
+      // Initialize payment sessions
+      const cartData = await medusaClientFetch<{
+        cart: {
+          payment_collection?: {
+            id: string;
+            payment_sessions?: Array<{
+              id: string;
+              provider_id: string;
+              data: { client_secret?: string };
+            }>;
+          };
+        };
+      }>(`/store/carts/${cartId}`);
+
+      const paymentCollectionId = cartData.cart.payment_collection?.id;
+
+      if (paymentCollectionId) {
+        // Initialize payment session for Stripe (or system default)
+        const providerToUse = "pp_stripe_stripe";
+        try {
+          const sessionData = await medusaClientFetch<{
+            payment_session: {
+              id: string;
+              data: { client_secret?: string };
+            };
+          }>(`/store/payment-collections/${paymentCollectionId}/payment-sessions`, {
+            method: "POST",
+            body: { provider_id: providerToUse },
+          });
+
+          if (sessionData.payment_session?.data?.client_secret) {
+            setStripeClientSecret(sessionData.payment_session.data.client_secret);
+          }
+        } catch {
+          // Stripe not configured, try system default
+          try {
+            await medusaClientFetch(
+              `/store/payment-collections/${paymentCollectionId}/payment-sessions`,
+              {
+                method: "POST",
+                body: { provider_id: "pp_system_default" },
+              }
+            );
+          } catch {
+            // No payment provider available
+          }
+        }
+      }
+
+      setCurrentStep("payment");
+    } catch (e) {
+      console.error("Shipping method failed:", e);
+      setError("Failed to set shipping method.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cartId, selectedShipping]);
+
+  // Step 4: Complete the order
+  const handlePlaceOrder = useCallback(async () => {
+    if (!cartId) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await medusaClientFetch(`/store/carts/${cartId}/complete`, {
+        method: "POST",
+      });
+
+      clearCart();
+      router.push("/checkout/confirmation");
+    } catch (e) {
+      console.error("Order completion failed:", e);
+      setError("Failed to complete order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cartId, clearCart, router]);
 
   if (itemCount === 0 && currentStep !== "review") {
     return (
@@ -131,6 +277,12 @@ export default function CheckoutPage() {
       </div>
 
       <Container className="py-8 lg:py-12">
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
         <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-12">
           {/* Main Form Area */}
           <div>
@@ -152,6 +304,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, firstName: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                   <div>
@@ -165,6 +318,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, lastName: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -178,6 +332,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, email: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -204,6 +359,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, address: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                   <div>
@@ -217,6 +373,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, city: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                   <div>
@@ -229,6 +386,7 @@ export default function CheckoutPage() {
                         setShippingInfo({ ...shippingInfo, province: e.target.value })
                       }
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     >
                       <option value="">Select province</option>
                       <option value="AB">Alberta</option>
@@ -258,14 +416,16 @@ export default function CheckoutPage() {
                       }
                       placeholder="A1A 1A1"
                       className="w-full rounded border border-cream-100 px-3 py-2.5 text-sm outline-none focus:border-gold-500"
+                      required
                     />
                   </div>
                 </div>
                 <button
-                  onClick={nextStep}
-                  className="mt-8 rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700"
+                  onClick={handleShippingSubmit}
+                  disabled={loading || !shippingInfo.firstName || !shippingInfo.email || !shippingInfo.address}
+                  className="mt-8 rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
                 >
-                  Continue to Shipping Method
+                  {loading ? "Saving..." : "Continue to Shipping Method"}
                 </button>
               </div>
             )}
@@ -277,42 +437,50 @@ export default function CheckoutPage() {
                   Shipping Method
                 </h2>
                 <div className="mt-6 space-y-3">
-                  {shippingOptions.map((option) => (
-                    <label
-                      key={option.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors ${
-                        selectedShipping === option.id
-                          ? "border-gold-500 bg-gold-500/5"
-                          : "border-cream-100 hover:border-gold-400"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          name="shipping"
-                          value={option.id}
-                          checked={selectedShipping === option.id}
-                          onChange={(e) => setSelectedShipping(e.target.value)}
-                          className="accent-gold-500"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-neutral-900">
-                            {option.name}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {option.description}
-                          </p>
+                  {shippingOptions.length > 0 ? (
+                    shippingOptions.map((option) => (
+                      <label
+                        key={option.id}
+                        className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors ${
+                          selectedShipping === option.id
+                            ? "border-gold-500 bg-gold-500/5"
+                            : "border-cream-100 hover:border-gold-400"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="shipping"
+                            value={option.id}
+                            checked={selectedShipping === option.id}
+                            onChange={(e) => setSelectedShipping(e.target.value)}
+                            className="accent-gold-500"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-neutral-900">
+                              {option.name}
+                            </p>
+                            {option.description && (
+                              <p className="text-xs text-neutral-500">
+                                {option.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-sm font-medium text-neutral-900">
-                        {subtotal >= SHIPPING_THRESHOLD ? (
-                          <span className="text-primary-600">Free</span>
-                        ) : (
-                          formatPrice(option.price)
-                        )}
-                      </span>
-                    </label>
-                  ))}
+                        <span className="text-sm font-medium text-neutral-900">
+                          {subtotal >= SHIPPING_THRESHOLD ? (
+                            <span className="text-primary-600">Free</span>
+                          ) : (
+                            formatPrice(option.amount)
+                          )}
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-neutral-500">
+                      No shipping options available for your address.
+                    </p>
+                  )}
                 </div>
                 {subtotal < SHIPPING_THRESHOLD && (
                   <p className="mt-3 text-xs text-gold-500">
@@ -322,16 +490,17 @@ export default function CheckoutPage() {
                 )}
                 <div className="mt-8 flex gap-3">
                   <button
-                    onClick={prevStep}
+                    onClick={() => setCurrentStep("shipping")}
                     className="rounded border border-cream-100 px-6 py-3 text-sm font-medium text-neutral-900 transition-colors hover:border-gold-500"
                   >
                     Back
                   </button>
                   <button
-                    onClick={nextStep}
-                    className="rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700"
+                    onClick={handleShippingMethodSubmit}
+                    disabled={loading || !selectedShipping}
+                    className="rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
                   >
-                    Continue to Payment
+                    {loading ? "Processing..." : "Continue to Payment"}
                   </button>
                 </div>
               </div>
@@ -341,103 +510,38 @@ export default function CheckoutPage() {
             {currentStep === "payment" && (
               <div>
                 <h2 className="font-display text-xl font-semibold text-primary-700">
-                  Payment Method
+                  Payment
                 </h2>
-                <div className="mt-6 space-y-3">
-                  {/* Card Option */}
-                  <label
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                      paymentMethod === "card"
-                        ? "border-gold-500 bg-gold-500/5"
-                        : "border-cream-100 hover:border-gold-400"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={paymentMethod === "card"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="accent-gold-500"
+                <div className="mt-6">
+                  {stripeClientSecret ? (
+                    <StripePayment
+                      clientSecret={stripeClientSecret}
+                      onPaymentReady={() => setPaymentReady(true)}
+                      onError={(err) => setError(err)}
                     />
-                    <div>
+                  ) : (
+                    <div className="rounded-lg border border-cream-100 bg-cream-50 p-6">
                       <p className="text-sm font-medium text-neutral-900">
-                        Credit / Debit Card
+                        Payment Method
                       </p>
-                      <p className="text-xs text-neutral-500">
-                        Pay securely with Stripe
+                      <p className="mt-2 text-xs text-neutral-500">
+                        Stripe is not yet configured. Once you add your Stripe API keys,
+                        the payment form will appear here. You can still review your order.
                       </p>
-                    </div>
-                  </label>
-
-                  {/* Stripe Elements placeholder */}
-                  {paymentMethod === "card" && (
-                    <div className="ml-7 rounded-lg border border-cream-100 bg-cream-50 p-4">
-                      <div className="space-y-3">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-neutral-900">
-                            Card Number
-                          </label>
-                          <div className="h-10 rounded border border-cream-100 bg-white px-3 py-2 text-sm text-neutral-400">
-                            Stripe Elements will render here
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-900">
-                              Expiry
-                            </label>
-                            <div className="h-10 rounded border border-cream-100 bg-white px-3 py-2 text-sm text-neutral-400">
-                              MM / YY
-                            </div>
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-neutral-900">
-                              CVC
-                            </label>
-                            <div className="h-10 rounded border border-cream-100 bg-white px-3 py-2 text-sm text-neutral-400">
-                              CVC
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
-
-                  {/* PayPal Option */}
-                  <label
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                      paymentMethod === "paypal"
-                        ? "border-gold-500 bg-gold-500/5"
-                        : "border-cream-100 hover:border-gold-400"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="paypal"
-                      checked={paymentMethod === "paypal"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="accent-gold-500"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-neutral-900">PayPal</p>
-                      <p className="text-xs text-neutral-500">
-                        Redirect to PayPal to complete payment
-                      </p>
-                    </div>
-                  </label>
                 </div>
                 <div className="mt-8 flex gap-3">
                   <button
-                    onClick={prevStep}
+                    onClick={() => setCurrentStep("method")}
                     className="rounded border border-cream-100 px-6 py-3 text-sm font-medium text-neutral-900 transition-colors hover:border-gold-500"
                   >
                     Back
                   </button>
                   <button
-                    onClick={nextStep}
-                    className="rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700"
+                    onClick={() => setCurrentStep("review")}
+                    disabled={stripeClientSecret ? !paymentReady : false}
+                    className="rounded bg-sage-700 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
                   >
                     Review Order
                   </button>
@@ -499,16 +603,17 @@ export default function CheckoutPage() {
 
                 <div className="mt-8 flex gap-3">
                   <button
-                    onClick={prevStep}
+                    onClick={() => setCurrentStep("payment")}
                     className="rounded border border-cream-100 px-6 py-3 text-sm font-medium text-neutral-900 transition-colors hover:border-gold-500"
                   >
                     Back
                   </button>
                   <button
                     onClick={handlePlaceOrder}
-                    className="rounded bg-gold-500 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-gold-400"
+                    disabled={loading}
+                    className="rounded bg-gold-500 px-8 py-3 text-sm font-semibold uppercase tracking-widest text-white transition-colors hover:bg-gold-400 disabled:opacity-50"
                   >
-                    Place Order &mdash; {formatPrice(total)} CAD
+                    {loading ? "Processing..." : `Place Order — ${formatPrice(total)} CAD`}
                   </button>
                 </div>
               </div>
@@ -531,10 +636,10 @@ export default function CheckoutPage() {
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Shipping</span>
                   <span className="text-neutral-900">
-                    {shippingCost === 0 ? (
+                    {effectiveShipping === 0 ? (
                       <span className="text-primary-600">Free</span>
                     ) : (
-                      formatPrice(shippingCost)
+                      formatPrice(effectiveShipping)
                     )}
                   </span>
                 </div>

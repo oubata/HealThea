@@ -1,11 +1,16 @@
 import type { MetadataRoute } from "next";
-import { products } from "@/lib/data/products";
-import { categories } from "@/lib/data/categories";
+import { getProducts } from "@/lib/data/products";
+import { getCategories } from "@/lib/data/categories";
 import { blogPosts } from "@/lib/data/blog";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://healthea.ca";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
+
   const staticPages = [
     { url: `${siteUrl}`, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 1 },
     { url: `${siteUrl}/shop`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.9 },

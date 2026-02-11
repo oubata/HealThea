@@ -1,4 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
+
+const teaPhotos = [
+  { src: "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?w=150&h=150&fit=crop", alt: "Green tea leaves" },
+  { src: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=150&h=150&fit=crop", alt: "Black tea" },
+  { src: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=150&h=150&fit=crop", alt: "Matcha" },
+  { src: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=150&h=150&fit=crop", alt: "Herbal tea" },
+  { src: "https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=150&h=150&fit=crop", alt: "White tea" },
+  { src: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=150&h=150&fit=crop", alt: "Organic tea" },
+];
 
 const quickLinks = [
   { label: "Customer Service", href: "/contact" },
@@ -88,16 +98,9 @@ export default function Footer() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                 </svg>
                 <span className="text-cream-100/80">
-                  123 Main Street<br />
-                  Toronto, ON M5V 1A1<br />
+                  Toronto, Ontario<br />
                   Canada
                 </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg className="h-4 w-4 flex-shrink-0 text-gold-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-                <span className="text-cream-100/80">+1 (416) 555-0123</span>
               </li>
               <li className="flex items-center gap-3">
                 <svg className="h-4 w-4 flex-shrink-0 text-gold-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -129,12 +132,16 @@ export default function Footer() {
           <div>
             <h4 className="font-display text-lg font-semibold text-white">Our Teas</h4>
             <div className="mt-4 grid grid-cols-3 gap-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-md bg-primary-700/30"
-                  aria-label={`Tea photo ${i}`}
-                />
+              {teaPhotos.map((photo) => (
+                <div key={photo.alt} className="relative aspect-square overflow-hidden rounded-md">
+                  <Image
+                    src={photo.src}
+                    alt={photo.alt}
+                    fill
+                    className="object-cover transition-opacity hover:opacity-80"
+                    sizes="80px"
+                  />
+                </div>
               ))}
             </div>
           </div>
