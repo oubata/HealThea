@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: healthea-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-medusa}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-healthea}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - healthea
+
+  redis:
+    image: redis:7-alpine
+    container_name: healthea-redis
+    restart: unless-stopped
+    networks:
+      - healthea
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: healthea-meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/meili_data
+    restart: unless-stopped
+    networks:
+      - healthea
+
+  # --- Application ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: healthea-backend
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-healthea}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY}
+      STORE_CORS: https://healthea.ca
+      ADMIN_CORS: https://admin.healthea.ca
+      NODE_ENV: production
+    ports:
+      - '9000:9000'
+    depends_on:
+      - postgres
+      - redis
+      - meilisearch
+    restart: unless-stopped
+    networks:
+      - healthea
+
+  storefront:
+    build:
+      context: ./storefront
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
+        NEXT_PUBLIC_SITE_URL: https://healthea.ca
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+    container_name: healthea-storefront
+    environment:
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
+      NEXT_PUBLIC_SITE_URL: https://healthea.ca
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - healthea
+
+volumes:
+  postgres_data:
+  meilisearch_data:
+
+networks:
+  healthea:
+    driver: bridge

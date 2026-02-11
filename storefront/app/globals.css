@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* ===== HealThEA Brand Theme ===== */
+@theme inline {
+  /* Brand Colors */
+  --color-primary-500: #4A8C4A;
+  --color-primary-600: #3D7A3D;
+  --color-primary-700: #2D5F2D;
+
+  --color-gold-400: #D4A84C;
+  --color-gold-500: #C4973B;
+
+  --color-sage-600: #4A6B4A;
+  --color-sage-700: #3B5E3B;
+
+  --color-cream-50: #FAF8F5;
+  --color-cream-100: #F5F0EB;
+
+  --color-neutral-500: #6B6B6B;
+  --color-neutral-900: #2C2C2C;
+
+  /* Fonts */
+  --font-display: "Playfair Display", serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--color-cream-50);
+  color: var(--color-neutral-900);
+  font-family: var(--font-body);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-primary-500);
+  color: white;
+}

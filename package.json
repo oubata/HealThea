@@ -1,0 +1,14 @@
+{
+  "name": "healthea",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HealThEA - Premium Healthy Teas from Around the World",
+  "scripts": {
+    "dev:storefront": "cd storefront && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:storefront": "cd storefront && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  }
+}
