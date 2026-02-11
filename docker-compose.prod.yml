@@ -10,25 +10,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medusa} -d ${DB_NAME:-healthea}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medusa}"]
+      interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - healthea
+      retries: 30
+      start_period: 60s
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - healthea
 
   meilisearch:
     image: getmeili/meilisearch:latest
@@ -38,8 +28,6 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     restart: unless-stopped
-    networks:
-      - healthea
 
   # --- Application ---
   backend:
@@ -63,13 +51,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      meilisearch:
-        condition: service_started
     restart: unless-stopped
-    networks:
-      - healthea
 
   storefront:
     build:
@@ -90,13 +72,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    networks:
-      - healthea
 
 volumes:
   postgres_data:
   meilisearch_data:
-
-networks:
-  healthea:
-    driver: bridge
