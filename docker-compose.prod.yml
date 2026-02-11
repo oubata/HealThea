@@ -2,7 +2,6 @@ services:
   # --- Infrastructure ---
   postgres:
     image: postgres:15-alpine
-    container_name: healthea-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-medusa}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -14,25 +13,25 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-medusa} -d ${DB_NAME:-healthea}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - healthea
 
   redis:
     image: redis:7-alpine
-    container_name: healthea-redis
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
     networks:
       - healthea
 
   meilisearch:
     image: getmeili/meilisearch:latest
-    container_name: healthea-meilisearch
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       MEILI_ENV: production
@@ -47,7 +46,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: healthea-backend
     environment:
       DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-healthea}
       REDIS_URL: redis://redis:6379
@@ -82,7 +80,6 @@ services:
         NEXT_PUBLIC_SITE_URL: https://healthea.ca
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
-    container_name: healthea-storefront
     environment:
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
       NEXT_PUBLIC_SITE_URL: https://healthea.ca
