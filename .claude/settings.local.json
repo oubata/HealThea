@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(npx:*)",
+      "Bash(where:*)",
+      "Bash(git --version:*)",
+      "Bash(docker:*)",
+      "Bash(npm view:*)"
+    ],
+    "additionalDirectories": [
+      "e:\\osman\\Documents\\Projects - 2026\\Websites\\HealThea\\Build"
+    ]
+  }
+}
