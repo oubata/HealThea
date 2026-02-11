@@ -1,0 +1,7 @@
+==== HealThea Notes - AI
+
+Please read this document and create a more formal Spec document that I can use in a VS Code to re-create this website, with Claude Code. The document should include all the basic things but if I forget something, or if the dependencies are not readable feel free to ask. You can also scrape the website itself, before I delete it, if you want to see it yourself at this link: https://healthea.ca/
+
+FYI: I have my Coolify on my Hetzner servers, ready.
+
+
