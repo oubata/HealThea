@@ -35,7 +35,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-healthea}
+      DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-healthea}?sslmode=disable
       REDIS_URL: redis://redis:6379
       MEILISEARCH_HOST: http://meilisearch:7700
       MEILISEARCH_API_KEY: ${MEILI_MASTER_KEY}
