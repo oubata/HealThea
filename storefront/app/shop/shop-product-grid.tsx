@@ -22,7 +22,7 @@ function filterProducts(
   if (categorySlug) {
     const cat = allCategories.find((c) => c.slug === categorySlug);
     if (cat) {
-      filtered = filtered.filter((p) => p.collection_id === cat.id);
+      filtered = filtered.filter((p) => p.category_ids.includes(cat.id));
     }
   }
 

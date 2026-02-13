@@ -42,9 +42,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECRET: ${COOKIE_SECRET}
       STRIPE_API_KEY: ${STRIPE_SECRET_KEY:-}
-      STORE_CORS: https://healthea.ca
-      ADMIN_CORS: https://healthea.ca
-      AUTH_CORS: https://healthea.ca
+      STORE_CORS: ${PUBLIC_SITE_URL}
+      ADMIN_CORS: ${PUBLIC_SITE_URL}
+      AUTH_CORS: ${PUBLIC_SITE_URL}
       NODE_ENV: production
     ports:
       - '9000:9000'
@@ -58,13 +58,13 @@ services:
       context: ./storefront
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
-        NEXT_PUBLIC_SITE_URL: https://healthea.ca
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     environment:
-      NEXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.healthea.ca
-      NEXT_PUBLIC_SITE_URL: https://healthea.ca
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${PUBLIC_API_URL}
+      NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
       NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
       NODE_ENV: production
     ports:

@@ -19,6 +19,7 @@ export interface Product {
   images: string[];
   variants: ProductVariant[];
   collection_id: string; // first category id (for backwards compat)
+  category_ids: string[]; // all category ids
   tags: string[];
   metadata: {
     origin_country: string;
@@ -92,6 +93,7 @@ function mapProduct(p: MedusaProduct): Product {
       inventory_quantity: v.inventory_quantity ?? 100,
     })),
     collection_id: p.categories?.[0]?.id ?? "",
+    category_ids: p.categories?.map((c) => c.id) ?? [],
     tags: p.tags?.map((t) => t.value) ?? [],
     metadata: {
       origin_country: meta.origin_country ?? "",

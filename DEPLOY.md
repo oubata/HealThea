@@ -59,6 +59,7 @@ openssl rand -hex 16
 2. Connect your GitHub repository
 3. Set the compose file to `docker-compose.prod.yml`
 4. Add environment variables from `.env.production.example` with real values
+   - Make sure `PUBLIC_SITE_URL` and `PUBLIC_API_URL` match your real domains
 5. Set domains:
    - Storefront service: `healthea.ca` → port 3000
    - Backend service: `api.healthea.ca` → port 9000
