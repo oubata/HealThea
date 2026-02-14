@@ -13,6 +13,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NODE_ENV=production
+ENV DISABLE_MEDUSA_ADMIN=true
 
 RUN npm run build
 
@@ -31,5 +32,5 @@ COPY --from=builder /app/tsconfig.json ./
 
 EXPOSE 9000
 
-# Run migrations on startup, then start
-CMD ["sh", "-c", "npx medusa db:migrate && npm run start"]
+# Run migrations on startup; optional seeding can be enabled with SEED_ON_STARTUP=true
+CMD ["sh", "-c", "npx medusa db:migrate && if [ \"$SEED_ON_STARTUP\" = \"true\" ]; then npm run seed; fi && npm run start"]

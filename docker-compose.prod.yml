@@ -46,6 +46,8 @@ services:
       ADMIN_CORS: ${PUBLIC_SITE_URL}
       AUTH_CORS: ${PUBLIC_SITE_URL}
       NODE_ENV: production
+      DISABLE_MEDUSA_ADMIN: true
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-false}
     ports:
       - '9000:9000'
     depends_on:
